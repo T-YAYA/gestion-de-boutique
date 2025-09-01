@@ -1,21 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { getUser } from '@/server/getUser';
+import { getUser } from "@/server/getUser";
 
-interface Params {
-  params: { id: string }; // id est toujours une string
-}
-
-export async function DELETE(req: Request, { params }: Params) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const user = await getUser();
 
   try {
-    // Convertir id en nombre
-    const id = parseInt(params.id, 10);
+    // Récupérer l'id depuis params
+    const { id: idStr } = await context.params;
+    const id = parseInt(idStr, 10);
 
     // Supprimer le produit
     const deletedProduct = await prisma.product.delete({
-      where: { id, userId:user?.id },
+      where: { id, userId: user?.id },
     });
 
     return NextResponse.json({

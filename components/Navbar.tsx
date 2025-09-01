@@ -14,6 +14,8 @@ export default function Navbar() {
   const router = useRouter();
   useEffect(() => {
     const getUser = async () => {
+      const supabase = createClient();
+
       const { data } = await supabase.auth.getClaims();
       setName(data?.claims?.user_metadata.name);
     };

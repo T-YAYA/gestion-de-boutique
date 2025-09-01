@@ -259,7 +259,7 @@ export default function MovementsPage() {
                   {(
                     selectedMovement.quantity * selectedMovement.unitPrice
                   ).toFixed(2)}{" "}
-                  €
+                  FCFA
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-emerald-100">

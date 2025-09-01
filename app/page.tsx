@@ -1,102 +1,238 @@
-import Image from "next/image";
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Package, TrendingUp, AlertCircle, BarChart3 } from "lucide-react";
+import { useEffect, useState } from "react";
+
+type Stats = {
+  totalProducts: number;
+  lowStock: number;
+  recentMovements: number;
+  stockValue: number;
+};
+type produit = {
+  id: number;
+  name: string;
+  stock: number;
+  category: { id: number; name: string };
+  lowStock: boolean;
+};
+type ProductStats = {
+  lowStockProducts: produit[];
+  recentProducts: produit[];
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function StatsCard({ title, value, icon, change }: any) {
+  return (
+    <Card className="bg-emerald-50 shadow-lg border border-emerald-200 hover:scale-105 transform transition-transform duration-300">
+      <CardHeader className="flex justify-between items-center pb-2">
+        <CardTitle className="text-sm font-medium text-emerald-800">
+          {title}
+        </CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-emerald-900">{value}</div>
+        <p
+          className={`text-xs font-medium ${
+            change.startsWith("+") ? "text-green-600" : "text-red-500"
+          }`}
+        >
+          {change} depuis le mois dernier
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BadgeStock({ Stock }: { Stock: number }) {
+  return (
+    <span
+      className={`whitespace-nowrap text-sm px-3 py-1 rounded-full font-medium ${
+        Stock < 5
+          ? "bg-yellow-200 text-yellow-800 animate-pulse"
+          : "bg-emerald-200 text-emerald-800"
+      }`}
+    >
+      {Stock < 5 ? "Stock faible" : "En stock"}
+    </span>
+  );
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [productStats, setProductStats] = useState<ProductStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const stat = [
+    {
+      title: "Total Produits",
+      value: stats?.totalProducts || 0,
+      icon: <Package className="h-6 w-6 text-emerald-600" />,
+      change: "+12%",
+    },
+    {
+      title: "Stock Faible",
+      value: stats?.lowStock,
+      icon: <AlertCircle className="h-6 w-6 text-yellow-500" />,
+      change: "-3%",
+    },
+    {
+      title: "Mouvements (30j)",
+      value: stats?.recentMovements,
+      icon: <TrendingUp className="h-6 w-6 text-blue-500" />,
+      change: "+18%",
+    },
+    {
+      title: "Valeur Stock",
+      value: `${stats?.stockValue} FCFA` || 0,
+      icon: <BarChart3 className="h-6 w-6 text-purple-500" />,
+      change: "+5.2%",
+    },
+  ];
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const resStats = await fetch("/api/stats");
+        const resProducts = await fetch("/api/produitsState");
+        const data = await resStats.json();
+        const productsData = await resProducts.json();
+        setStats(data);
+        setProductStats(productsData);
+      } catch (err) {
+        console.error("Erreur fetch stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen text-emerald-700">
+        Chargement...
+      </div>
+    );
+  if (!stats || !productStats)
+    return (
+      <div className="flex justify-center items-center h-screen text-emerald-700">
+        Pas de données disponibles
+      </div>
+    );
+
+  return (
+    <div className="min-h-screen bg-emerald-50 transition-colors duration-500">
+      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-emerald-900 animate-fadeIn">
+            Tableau de bord
+          </h1>
+          <p className="text-emerald-800/70 animate-fadeIn delay-150">
+            Aperçu de votre gestion de stock
+          </p>
         </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {stat.map((stat, i) => (
+            <StatsCard key={i} {...stat} />
+          ))}
+        </div>
+
+        {/* Produits faible stock */}
+        <Card className="bg-white shadow-lg border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-700">
+              <AlertCircle className="h-5 w-5 animate-pulse" /> Produits en
+              stock faible
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!productStats.lowStockProducts.length ? (
+              <p className="text-center py-4 text-gray-500">
+                Aucun produit en stock faible
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="table table-zebra w-full transition-transform duration-300 5">
+                  <thead>
+                    <tr>
+                      <th>Produit</th>
+                      <th>Catégorie</th>
+                      <th>Stock</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productStats.lowStockProducts.map((p) => (
+                      <tr
+                        key={p.id}
+                        className="hover:bg-emerald-50 transition-colors duration-300"
+                      >
+                        <td>{p.name}</td>
+                        <td>{p.category?.name}</td>
+                        <td>
+                          <BadgeStock Stock={p.stock} />
+                        </td>
+                        <td>
+                          <button className="btn btn-sm btn-emerald hover:scale-105 transition-transform duration-300">
+                            Commander
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Produits récents */}
+        <Card className="bg-white shadow-lg border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle className="text-emerald-800">
+              Produits récemment ajoutés
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="table w-full transition-transform duration-300 ">
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Catégorie</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productStats.recentProducts.map((p) => (
+                    <tr
+                      key={p.id}
+                      className="hover:bg-emerald-50 transition-colors duration-300"
+                    >
+                      <td>{p.name}</td>
+                      <td>{p.category?.name}</td>
+                      <td>{p.stock} unités</td>
+                      <td>
+                        <BadgeStock Stock={p.stock} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="footer footer-center p-4 bg-emerald-600 text-white mt-12 animate-fadeIn">
+        <p>© 2024 StockMaster - Tous droits réservés</p>
       </footer>
     </div>
   );

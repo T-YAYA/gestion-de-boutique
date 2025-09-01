@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id
+  name      String
+  email     String   @unique
+  image     String? // URL ou path de l'image
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  products   Product[] // produits créés par cet utilisateur
+  sales      Sale[] // ventes faites par cet utilisateur
+  categories Category[] // catégories créées par cet utilisateur
+  suppliers  Supplier[] // fournisseurs créés par cet utilisateur
+}
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  products Product[]
+  userId   String? // qui a créé le fournisseur
+  user     User?     @relation(fields: [userId], references: [id])
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  // relations
+  products Product[]
+  userId   String? // qui a créé la catégorie
+  user     User?     @relation(fields: [userId], references: [id])
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  stock     Int
+  initStock Int      @default(0)
+  price     Float
+  basePrice Float    @default(0)
+  lowStock  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  userId     String? // qui a créé le produit
+  categoryId Int?
+  supplierId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
+  sales Sale[]
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
+model Sale {
+  id         Int      @id @default(autoincrement())
+  quantity   Int
+  totalPrice Float
+  createdAt  DateTime @default(now())
+
+  // relations
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  userId String? // qui a fait la vente
+  user   User?   @relation(fields: [userId], references: [id])
+}
